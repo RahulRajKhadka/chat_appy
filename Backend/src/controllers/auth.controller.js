@@ -2,8 +2,9 @@ import User from "../Models/User.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../lib/utils.js";
 import { sendWelcomeEmail } from "../emails/emailHandler.js";
-import {ENV} from "../lib/env.js";
+import { ENV } from "../lib/env.js";
 
+import cloudinary from "../lib/cloudinary.js";
 
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -66,36 +67,90 @@ export const signup = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
-  const normalizedEmail =
-    typeof email === "string" ? email.trim().email.toLowerCase() : email;
-
   try {
-    if (!normalizedEmail || !password) {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid email or password" });
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
     generateToken(user._id, res);
-    return res.status(200).json({ message: "Login successful" });
+
+    return res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      message: "Login successful",
+    });
   } catch (error) {
     console.error(`Error: ${error.message}`);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 export const logout = (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,
     expires: new Date(0),
   });
   return res.status(200).json({ message: "Logout successful" });
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { fullName, profilePic } = req.body;
+    const updatedData = {};
+
+    if (fullName) updatedData.fullName = fullName;
+
+    if (profilePic) {
+      const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+        folder: "profile_pics",
+      });
+      updatedData.profilePic = uploadResponse.secure_url;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updatedData },
+      { new: true }
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({
+      _id: updatedUser._id,
+      fullName: updatedUser.fullName,
+      email: updatedUser.email,
+      profilePic: updatedUser.profilePic,
+    });
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const checkAuth = async (req, res) => {
+  try {
+    // req.user is set by protectRoute middleware
+    res.status(200).json(req.user);
+  } catch (error) {
+    console.log("Error in checkAuth controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
