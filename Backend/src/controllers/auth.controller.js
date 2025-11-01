@@ -1,6 +1,9 @@
-import User from "../models/User.js";
+import User from "../Models/User.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../lib/utils.js";
+import { sendWelcomeEmail } from "../emails/emailHandler.js";
+import {ENV} from "../lib/env.js";
+
 
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -38,7 +41,21 @@ export const signup = async (req, res) => {
     if (newUser) {
       const savedUser = await newUser.save();
       generateToken(savedUser._id, res);
-      return res.status(201).json({ message: "User registered successfully" });
+      res.status(201).json({
+        _id: savedUser._id,
+        fullName: savedUser.fullName,
+        email: savedUser.email,
+      });
+
+      try {
+        await sendWelcomeEmail(
+          savedUser.email,
+          savedUser.fullName,
+          ENV.CLIENT_URL
+        );
+      } catch (error) {
+        console.error("Error sending welcome email:", error);
+      }
     } else {
       return res.status(400).json({ message: "Invalid user data" });
     }
@@ -48,10 +65,10 @@ export const signup = async (req, res) => {
   }
 };
 
-
 export const login = async (req, res) => {
-  const { email, password } = req.body; 
-  const normalizedEmail = typeof email === 'string' ? email.trim().email.toLowerCase() : email;
+  const { email, password } = req.body;
+  const normalizedEmail =
+    typeof email === "string" ? email.trim().email.toLowerCase() : email;
 
   try {
     if (!normalizedEmail || !password) {
@@ -76,9 +93,9 @@ export const login = async (req, res) => {
   }
 };
 export const logout = (req, res) => {
-    res.cookie('token', '', {
-        httpOnly: true,
-        expires: new Date(0)
-    });
-    return res.status(200).json({ message: "Logout successful" });
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0),
+  });
+  return res.status(200).json({ message: "Logout successful" });
 };
