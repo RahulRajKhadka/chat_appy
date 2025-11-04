@@ -3,7 +3,6 @@ import aj from "../lib/arcjet.js";
 export const createRateLimitMiddleware = (rateLimitRule) => {
   return async (req, res, next) => {
     try {
-      // Use user ID if authenticated, otherwise use IP
       const userId = req.user?._id?.toString() || req.ip;
 
       const decision = await aj.protect(req, {
@@ -36,11 +35,11 @@ export const createRateLimitMiddleware = (rateLimitRule) => {
         });
       }
 
-      // Request allowed
+    
       next();
     } catch (error) {
       console.error("Rate limit error:", error);
-      // Fail open - allow request if Arcjet fails
+      
       next();
     }
   };

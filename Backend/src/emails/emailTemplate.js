@@ -1,5 +1,4 @@
-import {ENV}
-  from "../lib/env.js";
+import { ENV } from "../lib/env.js";
 export function createWelcomeEmailTemplate(name) {
   const clientURL = ENV.CLIENT_URL;
 

@@ -10,7 +10,7 @@ export const transporter = nodemailer.createTransport({
   },
 });
 
-// Verify connection
+
 transporter.verify((error, success) => {
   if (error) {
     console.error(" Email configuration error:", error);

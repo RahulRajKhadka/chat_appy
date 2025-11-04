@@ -12,16 +12,18 @@ import {
   fetchContactsRateLimit,
   fetchMessagesRateLimit,
 } from "../lib/arcjet.js";
+import { getReceiverSocketId } from "../lib/socket.js";
 
 const router = express.Router();
 
-// Apply rate limiting to all routes
+
 router.get(
   "/contacts",
   protectRoute,
   createRateLimitMiddleware(fetchContactsRateLimit),
   getAllContacts
 );
+
 
 router.get(
   "/chats",
@@ -30,12 +32,14 @@ router.get(
   getChatpartners
 );
 
+
 router.get(
   "/:id",
   protectRoute,
   createRateLimitMiddleware(fetchMessagesRateLimit),
   getMessageByUserId
 );
+
 
 router.post(
   "/send/:id",

@@ -3,8 +3,7 @@ import bcrypt from "bcryptjs";
 import { generateToken } from "../lib/utils.js";
 import { sendWelcomeEmail } from "../emails/emailHandler.js";
 import { ENV } from "../lib/env.js";
-
-import cloudinary from "../lib/cloudinary.js";
+import { uploadToCloudinary } from "../lib/cloudinary.js";
 
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -42,10 +41,14 @@ export const signup = async (req, res) => {
     if (newUser) {
       const savedUser = await newUser.save();
       generateToken(savedUser._id, res);
+
       res.status(201).json({
-        _id: savedUser._id,
-        fullName: savedUser.fullName,
-        email: savedUser.email,
+        user: {
+          _id: savedUser._id,
+          fullName: savedUser.fullName,
+          email: savedUser.email,
+          profilePic: savedUser.profilePic || null,
+        },
       });
 
       try {
@@ -89,9 +92,12 @@ export const login = async (req, res) => {
     generateToken(user._id, res);
 
     return res.status(200).json({
-      _id: user._id,
-      fullName: user.fullName,
-      email: user.email,
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        profilePic: user.profilePic || null,
+      },
       message: "Login successful",
     });
   } catch (error) {
@@ -108,49 +114,42 @@ export const logout = (req, res) => {
   return res.status(200).json({ message: "Logout successful" });
 };
 
-export const updateProfile = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { fullName, profilePic } = req.body;
-    const updatedData = {};
-
-    if (fullName) updatedData.fullName = fullName;
-
-    if (profilePic) {
-      const uploadResponse = await cloudinary.uploader.upload(profilePic, {
-        folder: "profile_pics",
-      });
-      updatedData.profilePic = uploadResponse.secure_url;
-    }
-
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $set: updatedData },
-      { new: true }
-    ).select("-password");
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    return res.status(200).json({
-      _id: updatedUser._id,
-      fullName: updatedUser.fullName,
-      email: updatedUser.email,
-      profilePic: updatedUser.profilePic,
-    });
-  } catch (error) {
-    console.error(`Error: ${error.message}`);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
-
 export const checkAuth = async (req, res) => {
   try {
-    // req.user is set by protectRoute middleware
-    res.status(200).json(req.user);
+    res.status(200).json({
+      user: req.user,
+    });
   } catch (error) {
     console.log("Error in checkAuth controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { profilePic } = req.body;
+    const userId = req.user._id;
+
+    if (!profilePic) {
+      return res.status(400).json({ message: "Profile picture is required" });
+    }
+
+   
+    const uploadResult = await uploadToCloudinary(profilePic, "profile-pictures");
+
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profilePic: uploadResult.url },
+      { new: true }
+    ).select("-password");
+
+    return res.status(200).json({
+      user: updatedUser,
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };

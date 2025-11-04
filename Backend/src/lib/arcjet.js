@@ -27,14 +27,14 @@ export const messageRateLimit = tokenBucket({
 export const authSignupRateLimit = tokenBucket({
   mode: "LIVE",
   refillRate: 3,
-  interval: 3600, // 1 hour
+  interval: 3600,
   capacity: 3,
 });
 
 export const authLoginRateLimit = tokenBucket({
   mode: "LIVE",
   refillRate: 5,
-  interval: 900, // 15 minutes
+  interval: 900, 
   capacity: 5,
 });
 
