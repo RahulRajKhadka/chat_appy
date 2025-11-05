@@ -22,7 +22,7 @@ export const getMessageByUserId = async (req, res) => {
     const loggedInUserId = req.user._id;
     const { id: userToChatWith } = req.params;
 
-    // Mark messages from that user as read 👇
+    // Mark messages from that user as read
     await Message.updateMany(
       { senderId: userToChatWith, receiverId: loggedInUserId, isRead: false },
       { $set: { isRead: true } }
@@ -34,6 +34,18 @@ export const getMessageByUserId = async (req, res) => {
         { senderId: userToChatWith, receiverId: loggedInUserId },
       ],
     }).sort({ createdAt: 1 });
+
+    // Emit unread count update to both users
+    const io = getIO();
+    const totalUnreadCount = await Message.countDocuments({
+      receiverId: loggedInUserId,
+      isRead: false,
+    });
+    
+    const senderSocketId = getReceiverSocketId(loggedInUserId.toString());
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("unreadCountUpdate", totalUnreadCount);
+    }
 
     return res.status(200).json({ messages });
   } catch (error) {
@@ -71,9 +83,18 @@ export const sendMessage = async (req, res) => {
     await newMessage.save();
 
     const receiverSocketId = getReceiverSocketId(receiverId);
+    const io = getIO();
+    
     if (receiverSocketId) {
-      getIO().to(receiverSocketId).emit("newMessage", newMessage);
+      io.to(receiverSocketId).emit("newMessage", newMessage);
       console.log(`📨 Message sent to user ${receiverId} via socket`);
+      
+      // Send updated unread count to receiver
+      const unreadCount = await Message.countDocuments({
+        receiverId: receiverId,
+        isRead: false,
+      });
+      io.to(receiverSocketId).emit("unreadCountUpdate", unreadCount);
     }
 
     res.status(201).json({ message: newMessage });
@@ -114,7 +135,6 @@ export const getChatpartners = async (req, res) => {
           ],
         }).sort({ createdAt: -1 });
 
-        // 🟢 Count unread messages from this partner
         const unreadCount = await Message.countDocuments({
           senderId: partner._id,
           receiverId: loggedInUserId,
@@ -130,12 +150,11 @@ export const getChatpartners = async (req, res) => {
                 createdAt: lastMessage.createdAt,
               }
             : null,
-          unreadCount, // 👈 added unread message count
+          unreadCount,
         };
       })
     );
 
-    // Sort by latest message
     chatPartnersWithLastMessage.sort((a, b) => {
       const timeA = a.lastMessage
         ? new Date(a.lastMessage.createdAt)
@@ -149,6 +168,22 @@ export const getChatpartners = async (req, res) => {
     return res.status(200).json({ chatPartners: chatPartnersWithLastMessage });
   } catch (error) {
     console.error("Error fetching chat partners:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getUnreadCount = async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id;
+    
+    const unreadCount = await Message.countDocuments({
+      receiverId: loggedInUserId,
+      isRead: false,
+    });
+
+    return res.status(200).json({ unreadCount });
+  } catch (error) {
+    console.error("Error fetching unread count:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
