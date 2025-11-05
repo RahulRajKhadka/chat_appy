@@ -1,58 +1,42 @@
 # Real-Time Chat Application
 
-## Setup Instructions
+A full-stack real-time chat application built with **React, Node.js, Express, MongoDB, and Socket.IO**.  
+
+This app allows users to sign up, log in, and chat in real-time with other users. It includes JWT authentication, email verification, media uploads, and a responsive frontend.
+
+---
+
+## Features
+
+- Real-time messaging with Socket.IO  
+- JWT authentication and authorization  
+- Cloudinary media uploads  
+- Email notifications and verification  
+- MongoDB database integration  
+- Responsive UI built with React + Vite
+
+---
+
+## Project Setup
 
 ### 1. Clone the Repository
-
-
-
-git clone <your-repository-url>
+```bash
+git clone https://github.com/RahulRajKhadka/chat_appy.git
 cd chatapp
 
-2. Backend Setup
-   
-cd backend
+cd Backend
 npm install
 cp .env.example .env
-Edit backend/.env file with your credentials:
 npm run dev
 
-env
-PORT=3000
-MONGODB_URL=your_mongodb_connection_string_here
-NODE_ENV=development
-JWT_SECRET=your_jwt_secret_here
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password_here
-EMAIL_FROM=your_email@gmail.com
-EMAIL_FROM_NAME=chatapp
-CLIENT_URL=http://localhost:5173
-CLOUDINARY_CLOUD_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-ARCJET_KEY=your_arcjet_key_here
-FRONTEND_URL=http://localhost:5173
 
 
-3. Frontend Setup
-
-cd frontend
+cd ../Frontend
 npm install
 cp .env.example .env
-Edit frontend/.env file:
-
-
-env
-VITE_API_URL=your_backend_url_here
-
-
-Start Backend:
-bash
-cd backend
-npm run dev 
-
-
-Start Frontend:
-bash
-cd frontend
 npm run dev
+
+
+
+
+
