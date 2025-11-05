@@ -19,7 +19,7 @@ function ProfileHeader() {
     <>
       <div className="w-full p-2  rounded-lg border-b border-green-400">
         <div className="flex items-center gap-4 justify-between">
-          {/* Profile Section */}
+        
           <div className="flex items-center gap-4">
             <div className="relative">
               <img

@@ -14,6 +14,7 @@ export const useChatStore = create((set, get) => ({
   isLoadingMessages: false,
   isSendingMessage: false,
   isSoundEnabled: localStorage.getItem("isSoundEnabled") === "true",
+  totalUnreadCount: 0,
 
   toggleSound: () => {
     const newValue = !get().isSoundEnabled;
@@ -49,12 +50,28 @@ export const useChatStore = create((set, get) => ({
     try {
       const response = await axiosInstance.get("/messages/chats");
       set({ chatPartners: response.data.chatPartners || [] });
+      
+      // Calculate total unread count
+      const totalUnread = response.data.chatPartners.reduce(
+        (sum, partner) => sum + (partner.unreadCount || 0),
+        0
+      );
+      set({ totalUnreadCount: totalUnread });
     } catch (error) {
       console.error("Error fetching chat partners:", error);
       toast.error("Failed to load chats");
       set({ chatPartners: [] });
     } finally {
       set({ isLoadingChatPartners: false });
+    }
+  },
+
+  getUnreadCount: async () => {
+    try {
+      const response = await axiosInstance.get("/messages/unread-count");
+      set({ totalUnreadCount: response.data.unreadCount });
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
     }
   },
 
@@ -68,6 +85,10 @@ export const useChatStore = create((set, get) => ({
           [userId]: response.data.messages || [],
         },
       }));
+      
+      // Refresh unread count after marking messages as read
+      get().getUnreadCount();
+      get().getChatPartners();
     } catch (error) {
       console.error("Error fetching messages:", error);
       toast.error("Failed to load messages");
@@ -146,6 +167,12 @@ export const useChatStore = create((set, get) => ({
       }
 
       get().getChatPartners();
+      get().getUnreadCount();
+    });
+
+    // Listen for unread count updates
+    socket.on("unreadCountUpdate", (count) => {
+      set({ totalUnreadCount: count });
     });
   },
 
@@ -153,5 +180,6 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
     socket.off("newMessage");
+    socket.off("unreadCountUpdate");
   },
 }));

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import BorderAnimatedContainer from "../components/BorderAnimatedContainer.jsx";
 import ProfileHeader from "../components/ProfileHeader.jsx";
 import ActiveTabSwitch from "../components/ActiveTabSwitch.jsx";
 import ChatList from "../components/ChatList.jsx";
@@ -14,6 +13,8 @@ function ChatPage() {
     activeTab,
     selectedUser,
     getChatPartners,
+    getAllContacts,
+    getUnreadCount,
     subscribeToMessages,
     unsubscribeFromMessages,
     setSelectedUser,
@@ -34,8 +35,12 @@ function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (authUser) getChatPartners();
-  }, [getChatPartners, authUser]);
+    if (authUser) {
+      getChatPartners();
+      getAllContacts();
+      getUnreadCount();
+    }
+  }, [getChatPartners, getAllContacts, getUnreadCount, authUser]);
 
   useEffect(() => {
     subscribeToMessages();
@@ -85,7 +90,6 @@ function ChatPage() {
         </div>
       )}
 
- 
       <div className="flex justify-center px-4 sm:px-6 lg:px-16 xl:px-24 2xl:px-32">
         <div className="flex h-[calc(100vh-64px)] md:h-screen w-full max-w-[1600px]">
           {/* Sidebar */}
@@ -112,7 +116,7 @@ function ChatPage() {
             </div>
           ) : null}
 
-          {/* Chat Area */}
+    
           <div
             className={`
             flex-1 flex flex-col bg-slate-900/50 backdrop-blur-lg
